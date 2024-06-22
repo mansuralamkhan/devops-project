@@ -1,0 +1,46 @@
+---
+- name: Ensure Jenkins is installed and running on Debian-based systems
+  hosts: jenkins-master
+  become: yes
+
+  tasks:
+    - name: Ensure Java is installed
+      ansible.builtin.apt:
+        name: openjdk-11-jdk
+        state: present
+
+    - name: Download Jenkins GPG key
+      ansible.builtin.get_url:
+        url: https://pkg.jenkins.io/debian-stable/jenkins.io-2023.key
+        dest: /usr/share/keyrings/jenkins-keyring.asc
+        mode: '0644'
+    
+    - name: Add Jenkins repository
+      ansible.builtin.lineinfile:
+        path: /etc/apt/sources.list.d/jenkins.list
+        line: 'deb [signed-by=/usr/share/keyrings/jenkins-keyring.asc] https://pkg.jenkins.io/debian-stable binary/'
+        create: yes
+    
+    - name: Update APT package index
+      ansible.builtin.apt:
+        update_cache: yes
+    
+    - name: Install Jenkins
+      ansible.builtin.apt:
+        name: jenkins
+        state: present
+
+    - name: Ensure Jenkins service is enabled and started
+      ansible.builtin.systemd:
+        name: jenkins
+        enabled: yes
+        state: started
+
+    - name: Check Jenkins service status
+      ansible.builtin.systemd:
+        name: jenkins
+        register: jenkins_service_status
+
+    - name: Output Jenkins service status
+      debug:
+        msg: "{{ jenkins_service_status }}"
